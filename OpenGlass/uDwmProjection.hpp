@@ -410,6 +410,32 @@ namespace OpenGlass::uDwm
 		}
 	};
 
+	struct CButton
+	{
+		POINT* GetPoint()
+		{
+			POINT* pt;
+			if (os::buildNumber < os::build_w11_21h2)
+				pt = (POINT*)this + 14;
+			else
+				pt = (POINT*)this + 15;
+			return pt;
+		}
+		SIZE* GetSize()
+		{
+			SIZE* size;
+			if (os::buildNumber < os::build_w11_21h2)
+				size = (SIZE*)this + 15;
+			else
+				size = (SIZE*)this + 16;
+			return size;
+		}
+		int GetButtonState()
+		{
+			return *(int*)((char*)this + 376);
+		}
+	};
+
 	struct ACCENT_POLICY
 	{
 		DWORD AccentState;
@@ -970,6 +996,43 @@ namespace OpenGlass::uDwm
 			}
 
 			return true;
+		}
+		bool HasTitlebar(CWindowData* data = nullptr) const
+		{
+			if (!data)
+			{
+				data = GetData();
+			}
+			if ((data->GetNonClientAttribute() & 8) == 0)
+			{
+				return false;
+			}
+
+			bool titlebarEmpty{ false };
+			if (os::buildNumber < os::build_w10_2004)
+			{
+				titlebarEmpty = !reinterpret_cast<DWORD const*>(this)[153];
+			}
+			else if (os::buildNumber < os::build_w11_21h2)
+			{
+				titlebarEmpty = !reinterpret_cast<DWORD const*>(this)[155];
+			}
+			else if (os::buildNumber < os::build_w11_22h2)
+			{
+				titlebarEmpty = !reinterpret_cast<DWORD const*>(this)[159];
+			}
+			else
+			{
+				titlebarEmpty = !reinterpret_cast<DWORD const*>(this)[163];
+			}
+
+			if (titlebarEmpty)
+			{
+				return false;
+			}
+
+			return true;
+
 		}
 		bool IsTrullyMinimized()
 		{

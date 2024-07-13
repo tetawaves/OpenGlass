@@ -194,6 +194,7 @@
     <ClInclude Include="AlphaMaskEffect.hpp" />
     <ClInclude Include="BackdropFactory.hpp" />
     <ClInclude Include="BlurBackdrop.hpp" />
+    <ClInclude Include="ButtonGlow.hpp" />
     <ClInclude Include="ColorConversion.hpp" />
     <ClInclude Include="CustomMsstyleLoader.hpp" />
     <ClInclude Include="dwmcoreProjection.hpp" />
@@ -237,6 +238,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="BackdropFactory.cpp" />
+    <ClCompile Include="ButtonGlow.cpp" />
     <ClCompile Include="ColorConversion.cpp" />
     <ClCompile Include="CustomMsstyleLoader.cpp" />
     <ClCompile Include="ServiceApi.cpp" />
@@ -264,6 +266,8 @@
     <ResourceCompile Include="OpenGlass.rc" />
   </ItemGroup>
   <ItemGroup>
+    <Image Include="btnglow_close.png" />
+    <Image Include="btnglow_other.png" />
     <Image Include="reflection.png" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

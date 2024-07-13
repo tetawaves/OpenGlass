@@ -4,6 +4,7 @@
 #include "BackdropManager.hpp"
 #include "CaptionTextHandler.hpp"
 #include "GlassFramework.hpp"
+#include "ButtonGlow.hpp"
 #include "BackdropFactory.hpp"
 #include "CustomMsstyleLoader.hpp"
 #include "ServiceApi.hpp"
@@ -20,6 +21,7 @@ void ConfigurationFramework::Update(UpdateType type)
 	GlassOptimizer::UpdateConfiguration(type);
 	BackdropFactory::UpdateConfiguration(type);
 	GlassFramework::UpdateConfiguration(type);
+	ButtonGlow::UpdateConfiguration(type);
 	CaptionTextHandler::UpdateConfiguration(type);
 	CustomMsstyleLoader::UpdateConfiguration(type);
 	DwmFlush();

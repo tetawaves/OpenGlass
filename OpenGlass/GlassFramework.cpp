@@ -4,6 +4,7 @@
 #include "GeometryRecorder.hpp"
 #include "BackdropManager.hpp"
 #include "GlassReflection.hpp"
+#include "ButtonGlow.hpp"
 #include "dwmcoreProjection.hpp"
 
 using namespace OpenGlass;
@@ -298,6 +299,9 @@ HRESULT STDMETHODCALLTYPE GlassFramework::MyCTopLevelWindow_ValidateVisual(uDwm:
 	{
 		return g_CTopLevelWindow_ValidateVisual_Org(This);
 	}
+
+	ButtonGlow::GetOrCreate(This, true);
+
 	auto data{ This->GetData() };
 	if (!data || !data->IsWindowVisibleAndUncloaked() || This->IsTrullyMinimized())
 	{
@@ -420,6 +424,7 @@ HRESULT STDMETHODCALLTYPE GlassFramework::MyCTopLevelWindow_UpdateSystemBackdrop
 void STDMETHODCALLTYPE GlassFramework::MyCTopLevelWindow_Destructor(uDwm::CTopLevelWindow* This)
 {
 	BackdropManager::Remove(This, true);
+	ButtonGlow::Remove(This);
 	g_CTopLevelWindow_Destructor_Org(This);
 }
 
@@ -554,8 +559,15 @@ void GlassFramework::UpdateConfiguration(ConfigurationFramework::UpdateType type
 		BackdropManager::Configuration::g_forceAccentColorization = static_cast<bool>(ConfigurationFramework::DwmGetDwordFromHKCUAndHKLM(L"ForceAccentColorization"));
 		if (BackdropManager::Configuration::g_forceAccentColorization)
 		{
-			BackdropManager::Configuration::g_accentColor = ConfigurationFramework::DwmGetDwordFromHKCUAndHKLM(L"AccentColor");
-			BackdropManager::Configuration::g_accentColorInactive = ConfigurationFramework::DwmGetDwordFromHKCUAndHKLM(L"AccentColorInactive");
+			auto accentColor{ ConfigurationFramework::DwmGetDwordFromHKCUAndHKLM(L"AccentColor") };
+			auto accentColorInactive{ ConfigurationFramework::DwmTryDwordFromHKCUAndHKLM(L"AccentColorInactive") };
+
+			if (!accentColorInactive.has_value())
+			{
+				accentColorInactive = ConfigurationFramework::DwmTryDwordFromHKCUAndHKLM(L"AccentColor");
+			}
+			BackdropManager::Configuration::g_accentColor = accentColor;
+			BackdropManager::Configuration::g_accentColorInactive = accentColorInactive.value();
 		}
 	}
 
