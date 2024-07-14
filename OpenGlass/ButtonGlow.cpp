@@ -57,11 +57,15 @@ void ButtonGlow::Remove(uDwm::CTopLevelWindow* window)
 bool ButtonGlow::ButtonHitTest(SIZE* buttonSize, POINT* buttonPoint, tagPOINT* mouseLocation, int buttonState)
 {
 	if (!mouseLocation || buttonState == 3)
+	{
 		return false;
-
+	}
+	
 	if ((mouseLocation->x >= buttonPoint->x && mouseLocation->x <= buttonPoint->x + buttonSize->cx - 1) &&
 		(mouseLocation->y >= buttonPoint->y && mouseLocation->y <= buttonPoint->y + buttonSize->cy - 1))
-		return true;
+		{
+			return true;			
+		}
 
 	return false;
 }
