@@ -3,6 +3,7 @@
 #include "cpprt.hpp"
 #include "Utils.hpp"
 #include "dwmcoreProjection.hpp"
+#include "dcompProjection.hpp"
 #include "OSHelper.hpp"
 #include "HookHelper.hpp"
 
@@ -249,10 +250,40 @@ namespace OpenGlass::uDwm
 			return allowed;
 		}
 		
+		HRESULT STDMETHODCALLTYPE InitializeFromSharedHandle(HANDLE handle)
+		{
+			DEFINE_INVOKER(CVisual::InitializeFromSharedHandle);
+			return INVOKE_MEMBERFUNCTION(handle);
+		}
+		void InitializeFromVisualProxy(CVisualProxy* proxy)
+		{
+			auto visualProxy{ reinterpret_cast<CVisualProxy**>(this) + 2 };
+			if (*visualProxy)
+			{
+				(*visualProxy)->Release();
+				*visualProxy = nullptr;
+			}
+			*visualProxy = proxy;
+		}
+		static HRESULT STDMETHODCALLTYPE WrapExistingResource(dwmcore::CChannel* channel, UINT handleIndex, CVisual** visual)
+		{
+			static const auto s_fn_ptr{ Utils::cast_pointer<HRESULT(*)(dwmcore::CChannel*, UINT, CVisual**)>(g_symbolMap.at("CVisual::WrapExistingResource")) };
+			return INVOKE_FUNCTION(channel, handleIndex, visual);
+		}
+		static HRESULT STDMETHODCALLTYPE WrapExistingResource(UINT handleIndex, CVisual** visual)
+		{
+			static const auto s_fn_ptr{ Utils::cast_pointer<HRESULT(*)(UINT, CVisual**)>(g_symbolMap.at("CVisual::WrapExistingResource")) };
+			return INVOKE_FUNCTION(handleIndex, visual);
+		}
 		static HRESULT STDMETHODCALLTYPE Create(CVisual** visual)
 		{
 			DEFINE_INVOKER(CVisual::Create);
 			return INVOKE_FUNCTION(visual);
+		}
+		static HRESULT STDMETHODCALLTYPE CreateFromSharedHandle(HANDLE handle, CVisual** visual)
+		{
+			DEFINE_INVOKER(CVisual::CreateFromSharedHandle);
+			return INVOKE_FUNCTION(handle, visual);
 		}
 		void STDMETHODCALLTYPE SetDirtyFlags(int flags)
 		{
@@ -399,6 +430,32 @@ namespace OpenGlass::uDwm
 		bool IsRTL() const
 		{
 			return (reinterpret_cast<BYTE const*>(this)[280] & 2) != 0;
+		}
+	};
+
+	struct CButton
+	{
+		POINT* GetPoint()
+		{
+			POINT* pt;
+			if (os::buildNumber < os::build_w11_21h2)
+				pt = (POINT*)this + 14;
+			else
+				pt = (POINT*)this + 15;
+			return pt;
+		}
+		SIZE* GetSize()
+		{
+			SIZE* size;
+			if (os::buildNumber < os::build_w11_21h2)
+				size = (SIZE*)this + 15;
+			else
+				size = (SIZE*)this + 16;
+			return size;
+		}
+		int GetButtonState()
+		{
+			return *(int*)((char*)this + 376);
 		}
 	};
 
@@ -1008,6 +1065,43 @@ namespace OpenGlass::uDwm
 
 			return true;
 		}
+		bool HasTitlebar(CWindowData* data = nullptr) const
+		{
+			if (!data)
+			{
+				data = GetData();
+			}
+			if ((data->GetNonClientAttribute() & 8) == 0)
+			{
+				return false;
+			}
+
+			bool titlebarEmpty{ false };
+			if (os::buildNumber < os::build_w10_2004)
+			{
+				titlebarEmpty = !reinterpret_cast<DWORD const*>(this)[153];
+			}
+			else if (os::buildNumber < os::build_w11_21h2)
+			{
+				titlebarEmpty = !reinterpret_cast<DWORD const*>(this)[155];
+			}
+			else if (os::buildNumber < os::build_w11_22h2)
+			{
+				titlebarEmpty = !reinterpret_cast<DWORD const*>(this)[159];
+			}
+			else
+			{
+				titlebarEmpty = !reinterpret_cast<DWORD const*>(this)[163];
+			}
+
+			if (titlebarEmpty)
+			{
+				return false;
+			}
+
+			return true;
+
+		}
 		bool IsTrullyMinimized()
 		{
 			RECT borderRect{};
@@ -1179,21 +1273,21 @@ namespace OpenGlass::uDwm
 
 			return d2dDevice;
 		}
-		IDCompositionDesktopDevice* GetDCompDevice() const
+		dcomp::IDCompositionDesktopDevicePartner* GetDCompDevice() const
 		{
-			IDCompositionDesktopDevice* interopDevice{ nullptr };
+			dcomp::IDCompositionDesktopDevicePartner* interopDevice{ nullptr };
 
 			if (os::buildNumber < os::build_w11_21h2)
 			{
-				interopDevice = reinterpret_cast<IDCompositionDesktopDevice* const*>(this)[27];
+				interopDevice = reinterpret_cast<dcomp::IDCompositionDesktopDevicePartner* const*>(this)[27];
 			}
 			else if (os::buildNumber < os::build_w11_22h2)
 			{
-				interopDevice = reinterpret_cast<IDCompositionDesktopDevice**>(reinterpret_cast<void* const*>(this)[5])[4];
+				interopDevice = reinterpret_cast<dcomp::IDCompositionDesktopDevicePartner**>(reinterpret_cast<void* const*>(this)[5])[4];
 			}
 			else
 			{
-				interopDevice = reinterpret_cast<IDCompositionDesktopDevice**>(reinterpret_cast<void* const*>(this)[6])[4];
+				interopDevice = reinterpret_cast<dcomp::IDCompositionDesktopDevicePartner**>(reinterpret_cast<void* const*>(this)[6])[4];
 			}
 
 			return interopDevice;
@@ -1259,6 +1353,174 @@ namespace OpenGlass::uDwm
 		if (fullyUnDecoratedFunctionName == "CDesktopManager::s_csDwmInstance")
 		{
 			offset.To(g_moduleHandle, CDesktopManager::s_csDwmInstance);
+		}
+
+		return true;
+	}
+	template <bool insertAtBack>
+	class CSpriteVisual
+	{
+	protected:
+		CVisual* m_parentVisual{ nullptr };
+		winrt::com_ptr<CVisual> m_udwmVisual{ nullptr };
+		winrt::com_ptr<IDCompositionVisual2> m_dcompVisual{ nullptr };
+		winrt::com_ptr<dcomp::InteropCompositionTarget> m_dcompTarget{ nullptr };
+		winrt::com_ptr<dcomp::IDCompositionDesktopDevicePartner> m_dcompDevice{ nullptr };
+		wuc::VisualCollection m_visualCollection{ nullptr };
+
+		void InitializeInteropDevice(dcomp::IDCompositionDesktopDevicePartner* interopDevice)
+		{
+			m_dcompDevice.copy_from(interopDevice);
+		}
+		virtual HRESULT InitializeVisual()
+		{
+			// initialize dcomp visual
+			RETURN_IF_FAILED(m_dcompDevice->CreateVisual(m_dcompVisual.put()));
+#ifdef _DEBUG
+			m_dcompVisual.as<IDCompositionVisualDebug>()->EnableRedrawRegions();
+#endif
+			m_visualCollection = dcomp::GetVisualPartnerWinRTInterop(m_dcompVisual.get())->GetVisualCollection();
+
+			// create shared target
+			RETURN_IF_FAILED(
+				m_dcompDevice->CreateSharedResource(
+					IID_PPV_ARGS(m_dcompTarget.put())
+				)
+			);
+			RETURN_IF_FAILED(m_dcompTarget->SetRoot(m_dcompVisual.get()));
+			RETURN_IF_FAILED(m_dcompDevice->Commit());
+
+			// interop with udwm and dwmcore
+			wil::unique_handle resourceHandle{ nullptr };
+			RETURN_IF_FAILED(
+				m_dcompDevice->OpenSharedResourceHandle(m_dcompTarget.get(), resourceHandle.put())
+			);
+
+			if (os::buildNumber < os::build_w10_1903)
+			{
+				UINT handleIndex{ 0 };
+				RETURN_IF_FAILED(
+					CDesktopManager::s_pDesktopManagerInstance->GetCompositor()->GetChannel()->DuplicateSharedResource(
+						resourceHandle.get(),
+						38,
+						&handleIndex
+					)
+				);
+				RETURN_IF_FAILED(CVisual::WrapExistingResource(CDesktopManager::s_pDesktopManagerInstance->GetCompositor()->GetChannel(), handleIndex, m_udwmVisual.put()));
+			}
+			else if (os::buildNumber < os::build_w10_2004)
+			{
+				UINT handleIndex{ 0 };
+				RETURN_IF_FAILED(
+					CDesktopManager::s_pDesktopManagerInstance->GetCompositor()->GetChannel()->DuplicateSharedResource(
+						resourceHandle.get(),
+						39,
+						&handleIndex
+					)
+				);
+				RETURN_IF_FAILED(CVisual::WrapExistingResource(handleIndex, m_udwmVisual.put()));
+			}
+			else
+			{
+				RETURN_IF_FAILED(CVisual::CreateFromSharedHandle(resourceHandle.get(), m_udwmVisual.put()));
+			}
+			m_udwmVisual->AllowVisualTreeClone(false);
+
+			if (m_parentVisual)
+			{
+				RETURN_IF_FAILED(
+					m_parentVisual->GetVisualCollection()->InsertRelative(
+						m_udwmVisual.get(),
+						nullptr,
+						insertAtBack,
+						true
+					)
+				);
+			}
+
+			return S_OK;
+		}
+		virtual void UninitializeVisual()
+		{
+			if (m_visualCollection)
+			{
+				m_visualCollection.RemoveAll();
+			}
+			if (m_parentVisual)
+			{
+				if (m_udwmVisual)
+				{
+					m_parentVisual->GetVisualCollection()->Remove(
+						m_udwmVisual.get()
+					);
+				}
+
+				m_udwmVisual = nullptr;
+			}
+			if (m_dcompVisual)
+			{
+#ifdef _DEBUG
+				m_dcompVisual.as<IDCompositionVisualDebug>()->DisableRedrawRegions();
+#endif
+				m_visualCollection.RemoveAll();
+				m_dcompVisual = nullptr;
+			}
+			m_dcompTarget = nullptr;
+		}
+
+		CSpriteVisual(CVisual* parentVisual) : m_parentVisual{ parentVisual } {}
+		virtual ~CSpriteVisual() { UninitializeVisual(); }
+	};
+	using CBackdropVisual = CSpriteVisual<true>;
+	using COverlayVisual = CSpriteVisual<false>;
+
+	template <bool insertAtBack>
+	class CClonedSpriteVisual : CSpriteVisual<insertAtBack>
+	{
+	protected:
+		wuc::RedirectVisual m_redirectVisual{ nullptr };
+		wuc::Visual m_sourceVisual{ nullptr };
+
+		HRESULT InitializeVisual() override
+		{
+			RETURN_IF_FAILED(CSpriteVisual<insertAtBack>::InitializeVisual());
+			auto compositor{ this->m_dcompDevice.as<wuc::Compositor>() };
+			m_redirectVisual = compositor.CreateRedirectVisual(m_sourceVisual);
+			this->m_visualCollection.InsertAtBottom(m_redirectVisual);
+
+			return S_OK;
+		}
+		void UninitializeVisual() override
+		{
+			if (this->m_visualCollection)
+			{
+				this->m_visualCollection.RemoveAll();
+			}
+			m_redirectVisual = nullptr;
+			CSpriteVisual<insertAtBack>::UninitializeVisual();
+		}
+		void OnDeviceLost()
+		{
+			UninitializeVisual();
+			this->InitializeInteropDevice(uDwm::CDesktopManager::s_pDesktopManagerInstance->GetDCompDevice());
+			InitializeVisual();
+		}
+
+		CClonedSpriteVisual(CVisual* parentVisual, const wuc::Visual& sourceVisual) :
+			m_sourceVisual{ sourceVisual },
+			CSpriteVisual<insertAtBack>{ parentVisual }
+		{
+		}
+		virtual ~CClonedSpriteVisual() { UninitializeVisual(); }
+	};
+	using CClonedBackdropVisual = CClonedSpriteVisual<true>;
+	using CClonedOverlayVisual = CClonedSpriteVisual<false>;
+
+	FORCEINLINE bool CheckDeviceState(const winrt::com_ptr<dcomp::IDCompositionDesktopDevicePartner>& dcompDevice)
+	{
+		if (dcompDevice.get() != CDesktopManager::s_pDesktopManagerInstance->GetDCompDevice())
+		{
+			return false;
 		}
 
 		return true;

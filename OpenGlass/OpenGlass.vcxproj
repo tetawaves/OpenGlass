@@ -189,8 +189,12 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="ButtonGlow.hpp" />
+    <ClInclude Include="CanvasEffect.hpp" />
+    <ClInclude Include="CrossFadeEffect.hpp" />
     <ClInclude Include="CustomBlurEffect.hpp" />
     <ClInclude Include="CustomMsstyleLoader.hpp" />
+    <ClInclude Include="dcompProjection.hpp" />
     <ClInclude Include="dwmcoreProjection.hpp" />
     <ClInclude Include="GlassEffectManager.hpp" />
     <ClInclude Include="ReflectionRenderer.hpp" />
@@ -213,8 +217,11 @@
     <ClInclude Include="uDwmProjection.hpp" />
     <ClInclude Include="Utils.hpp" />
     <ClInclude Include="wil.hpp" />
+    <ClInclude Include="winrt.hpp" />
+    <ClInclude Include="wucUtils.hpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="ButtonGlow.cpp" />
     <ClCompile Include="CustomBlurEffect.cpp" />
     <ClCompile Include="GlassEffectManager.cpp" />
     <ClCompile Include="VisualManager.cpp" />
@@ -243,6 +250,8 @@
     <ResourceCompile Include="OpenGlass.rc" />
   </ItemGroup>
   <ItemGroup>
+    <Image Include="btnglow_close.png" />
+    <Image Include="btnglow_other.png" />
     <Image Include="reflection.png" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

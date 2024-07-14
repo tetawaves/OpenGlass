@@ -41,6 +41,11 @@ namespace OpenGlass::dwmcore
 	};
 	struct CChannel
 	{
+		HRESULT STDMETHODCALLTYPE DuplicateSharedResource(HANDLE handle, UINT type, UINT* handleIndex)
+		{
+			DEFINE_INVOKER(CChannel::DuplicateSharedResource);
+			return INVOKE_MEMBERFUNCTION(handle, type, handleIndex);
+		}
 		HRESULT STDMETHODCALLTYPE MatrixTransformUpdate(UINT handleIndex, MilMatrix3x2D* matrix)
 		{
 			DEFINE_INVOKER(CChannel::MatrixTransformUpdate);

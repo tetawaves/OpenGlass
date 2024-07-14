@@ -3,6 +3,7 @@
 #include "CaptionTextHandler.hpp"
 #include "GlassFramework.hpp"
 #include "GlassRenderer.hpp"
+#include "ButtonGlow.hpp"
 #include "CustomMsstyleLoader.hpp"
 #include "ServiceApi.hpp"
 
@@ -17,6 +18,7 @@ void ConfigurationFramework::Update(UpdateType type)
 {
 	GlassFramework::UpdateConfiguration(type);
 	GlassRenderer::UpdateConfiguration(type);
+	ButtonGlow::UpdateConfiguration(type);
 	CaptionTextHandler::UpdateConfiguration(type);
 	CustomMsstyleLoader::UpdateConfiguration(type);
 	DwmFlush();
