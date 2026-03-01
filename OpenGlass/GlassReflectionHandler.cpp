@@ -4,6 +4,7 @@
 #include "dwmcoreProjection.hpp"
 #include "Shared.hpp"
 #include "GlassReflectionBrush.hpp"
+#include "GlassHighlightBrush.hpp"
 #include "GlassKernel.hpp"
 
 using namespace OpenGlass;
@@ -100,7 +101,7 @@ namespace OpenGlass::GlassReflectionHandler
 			RETURN_IF_FAILED(
 				brush->Update(
 					(Shared::g_reflectionPolicy & Shared::ReflectionPolicy::AnimatedGlassSheet) ? 
-					1.f : 
+					GlassKernel::ImageOpacityReinterpreter(true, false, true, true).ToFloat() :
 					0.f,
 					GlassReflectionBrush::CalculateTargetViewport(
 						{ lprc->left, lprc->top }
@@ -268,7 +269,7 @@ HRESULT GlassReflectionHandler::MyCLivePreview__FadeOutToGlass(uDWM::CLivePrevie
 				RETURN_IF_FAILED(
 					brush->Update(
 						(Shared::g_reflectionPolicy & Shared::ReflectionPolicy::LivePreview) ?
-						1.f :
+						GlassKernel::ImageOpacityReinterpreter(true, false, true, true).ToFloat() :
 						0.f,
 						GlassReflectionBrush::CalculateTargetViewport(
 							This->GetGlassVisual()->GetLocalToParentVisualOffset(This->GetTransformParent())
@@ -306,6 +307,94 @@ HRESULT GlassReflectionHandler::MyCLivePreview__UpdateInstructions(uDWM::CLivePr
 {
 	const auto hr = g_CLivePreview__UpdateInstructions_Org(This);
 
+	for (auto& visual : This->GetLivePreviewVisualArray()->views())
+	{
+		{
+			auto& windowFrames = visual.windowFrames;
+			{
+				if (windowFrames)
+				{
+					if (
+						const auto nonClientVisual = windowFrames->GetNonClientVisual();
+						nonClientVisual
+						)
+					{
+						if (
+							const auto brush = GlassHighlightBrush::GetOrCreate(
+								windowFrames,
+								0,
+								true
+							);
+							brush
+							)
+						{
+							const auto window = visual.data->GetWindow();
+							const auto active = window->TreatAsActiveWindow();
+
+							RECT windowRect{};
+							window->GetActualWindowRect(&windowRect, true, true, false);
+
+							RETURN_IF_FAILED(
+								brush->Update(
+									(Shared::g_reflectionPolicy & Shared::ReflectionPolicy::NonClient) ?
+									GlassKernel::ImageOpacityReinterpreter(active, false, false, false, true).ToFloat() :
+									0.f,
+									GlassHighlightBrush::CalculateTargetViewport(
+										{ windowRect.left, windowRect.top },
+										{ windowRect.right, windowRect.bottom },
+										nonClientVisual->GetScale()
+									),
+									D2D1::RectF(),
+									nullptr,
+									DWM::MilBrushMappingMode::Absolute,
+									DWM::MilBrushMappingMode::Absolute,
+									nullptr,
+									nullptr,
+									DWM::MilStretch::None,
+									DWM::MilTileMode::Extend,
+									DWM::MilHorizontalAlignment::Left,
+									DWM::MilVerticalAlignment::Top,
+									nullptr
+								)
+							);
+
+							wil::unique_hrgn region
+							{
+								CreateRoundRectRgn(
+									windowRect.left,
+									windowRect.top,
+									windowRect.right,
+									windowRect.bottom,
+									Shared::g_roundRectRadius,
+									Shared::g_roundRectRadius
+								)
+							};
+							RETURN_LAST_ERROR_IF_NULL(region);
+
+							winrt::com_ptr<uDWM::CRgnGeometryProxy> geometry{ nullptr };
+							RETURN_IF_FAILED(
+								uDWM::ResourceHelper::CreateGeometryFromHRGN(
+									region.get(),
+									geometry.put()
+								)
+							);
+
+							winrt::com_ptr<uDWM::CDrawGeometryInstruction> instruction{};
+							RETURN_IF_FAILED(
+								uDWM::CDrawGeometryInstruction::Create(
+									brush.get(),
+									geometry.get(),
+									instruction.put()
+								)
+							);
+							RETURN_IF_FAILED(nonClientVisual->AddInstruction(instruction.get()));
+						}
+					}
+				}
+			}
+		}
+	}
+
 	for (const auto& resource : This->GetLivePreviewResourceArray()->views())
 	{
 		//if (resource.IsGlassBoundingRectNotEmpty())
@@ -326,7 +415,7 @@ HRESULT GlassReflectionHandler::MyCLivePreview__UpdateInstructions(uDWM::CLivePr
 				RETURN_IF_FAILED(
 					brush->Update(
 						(Shared::g_reflectionPolicy & Shared::ReflectionPolicy::LivePreview) ?
-						1.f :
+						GlassKernel::ImageOpacityReinterpreter(true, false, true, true).ToFloat() :
 						0.f,
 						GlassReflectionBrush::CalculateTargetViewport(
 							This->GetGlassVisual()->GetLocalToParentVisualOffset(This->GetTransformParent())

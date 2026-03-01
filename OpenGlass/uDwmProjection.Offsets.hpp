@@ -447,6 +447,17 @@ namespace OpenGlass::uDWM
 			};
 		}
 	};
+	struct CTopLevelWindow_GetNonClientVisual_Index_Offsets {
+		consteval static auto operator()() {
+			return std::array{
+				Util::OffsetInfo{.offset = 32 * sizeof(ULONG_PTR), .build = os::build_w10_2004, .revision = 0 },
+				Util::OffsetInfo{.offset = 33 * sizeof(ULONG_PTR), .build = os::build_w11_21h2, .revision = 0 },
+				Util::OffsetInfo{.offset = 34 * sizeof(ULONG_PTR), .build = os::build_w11_22h2, .revision = 0 },
+				Util::OffsetInfo{.offset = 36 * sizeof(ULONG_PTR), .build = os::build_w11_24h2, .revision = 0 },
+				Util::OffsetInfo{.offset = 31 * sizeof(ULONG_PTR), .build = 0, .revision = 0 }
+			};
+		}
+	};
 	struct CTopLevelWindow_GetWindowBorder_Index_Offsets {
 		consteval static auto operator()(){
 			return std::array{

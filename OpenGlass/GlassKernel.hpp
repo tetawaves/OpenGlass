@@ -58,6 +58,84 @@ namespace OpenGlass::GlassKernel
 		}
 	};
 
+	class ImageOpacityReinterpreter
+	{
+		std::bitset<16> m_flag{};
+	public:
+		bool GetIsValid() const
+		{
+			return m_flag.test(0);
+		}
+		bool GetIsActive() const
+		{
+			return m_flag.test(1);
+		}
+		bool GetIsMaximized() const
+		{
+			return m_flag.test(2);
+		}
+		bool GetIsReflection() const
+		{
+			return m_flag.test(3);
+		}
+		bool GetIsFullOpacity() const
+		{
+			return m_flag.test(4);
+		}
+		bool GetIsSheetOfGlass() const
+		{
+			return m_flag.test(5);
+		}
+		void SetIsActive(bool value)
+		{
+			m_flag.set(1, value);
+		}
+		void SetIsMaximized(bool value)
+		{
+			m_flag.set(2, value);
+		}
+		void SetIsReflection(bool value)
+		{
+			m_flag.set(3, value);
+		}
+		void SetIsFullOpacity(bool value)
+		{
+			m_flag.set(4, value);
+		}
+		void SetIsSheetOfGlass(bool value)
+		{
+			m_flag.set(5, value);
+		}
+
+		float ToFloat() const
+		{
+			const auto value = ((m_flag.to_ulong() << 8) | 0x3F000001);
+			return *reinterpret_cast<float const*>(&value);
+		}
+		ImageOpacityReinterpreter(float value)
+		{
+			if ((*reinterpret_cast<DWORD const*>(&value) & 0xFF0000FF) == 0x3F000001)
+			{
+				m_flag = (*reinterpret_cast<DWORD const*>(&value) & 0x00FFFF00) >> 8;
+				m_flag.set(0);
+			}
+		}
+		ImageOpacityReinterpreter(
+			bool active,
+			bool maximized,
+			bool reflection,
+			bool fullOpacity = false,
+			bool sheetOfGlass = false
+		)
+		{
+			SetIsActive(active);
+			SetIsMaximized(maximized);
+			SetIsReflection(reflection);
+			SetIsFullOpacity(fullOpacity);
+			SetIsSheetOfGlass(sheetOfGlass);
+		}
+	};
+
 	void RedrawAllTopLevelWindow(bool deepRedraw);
 	float GetBlurRadius();
 

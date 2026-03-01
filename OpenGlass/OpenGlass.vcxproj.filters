@@ -188,6 +188,12 @@
     <ClInclude Include="DxgiPrivates.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="GlassHighlightBrush.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="HighlightRealizer.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="AccentOverrider.cpp">
@@ -292,6 +298,12 @@
     <ClCompile Include="ServiceHandler.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="GlassHighlightBrush.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="HighlightRealizer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="AeroColorizationEffect.hlsl">
@@ -346,6 +358,12 @@
   </ItemGroup>
   <ItemGroup>
     <Image Include="reflection.png">
+      <Filter>Image Files</Filter>
+    </Image>
+    <Image Include="highlight.png">
+      <Filter>Image Files</Filter>
+    </Image>
+    <Image Include="sidehighlight.png">
       <Filter>Image Files</Filter>
     </Image>
   </ItemGroup>

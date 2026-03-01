@@ -177,7 +177,7 @@ HRESULT AccentOverrider::MyCAccent__UpdateSolidFill(
 			RETURN_IF_FAILED(
 				brush->Update(
 					(Shared::g_reflectionPolicy & Shared::ReflectionPolicy::NonClient) ?
-					GlassKernel::GetAdjustedReflectionIntensity(true, maximized) :
+					GlassKernel::ImageOpacityReinterpreter(true, maximized, true).ToFloat() :
 					0.f,
 					GlassReflectionBrush::CalculateTargetViewport(
 						visual->GetLocalToParentVisualOffset(window->GetTransformParent()),

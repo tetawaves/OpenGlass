@@ -775,7 +775,7 @@ namespace OpenGlass::uDWM
 		{
 			const auto& offset = GetOffset();
 
-			return offset.x == -32000 || offset.y == -32000;
+			return offset.x <= -32000 || offset.y <= -32000;
 		}
 
 		DECLSPEC_PROJECTION CWindowData* GetData() const
@@ -805,6 +805,10 @@ namespace OpenGlass::uDWM
 		DECLSPEC_PROJECTION CCanvasVisual* GetClientBlurVisual() const
 		{
 			return *Util::PointerExecuteUnsafe<CTopLevelWindow_GetClientBlurVisual_Index_Offsets, Util::OffsetBy<CCanvasVisual* const*>>(this, g_versionInfo.build, g_versionInfo.revision);
+		}
+		DECLSPEC_PROJECTION CCanvasVisual* GetNonClientVisual() const
+		{
+			return *Util::PointerExecuteUnsafe<CTopLevelWindow_GetNonClientVisual_Index_Offsets, Util::OffsetBy<CCanvasVisual* const*>>(this, g_versionInfo.build, g_versionInfo.revision);
 		}
 		DECLSPEC_PROJECTION CWindowBorder* GetWindowBorder() const
 		{
@@ -987,6 +991,10 @@ namespace OpenGlass::uDWM
 					clonedWindow
 				);
 			}
+		}
+		DECLSPEC_PROJECTION HRESULT ApplyMaximizedClip(HRGN region)
+		{
+			return HANDLE_PROJECTION_FUNCTION(CTopLevelWindow::ApplyMaximizedClip, this, region);
 		}
 		DECLSPEC_PROJECTION bool TreatAsActiveWindow()
 		{
@@ -1376,6 +1384,7 @@ namespace OpenGlass::uDWM
 		MAKE_VARIABLE_PROJECTION_TUPLE_BY_ALIAS(CTopLevelWindow::vftable, "CTopLevelWindow::`vftable'", 0, 0),
 		MAKE_FUNCTION_PROJECTION_TUPLE_BY_ALIAS(CTopLevelWindow::CloneVisualTreeForLivePreview_Win10, "CTopLevelWindow::CloneVisualTreeForLivePreview", 0, os::build_w11_22h2),
 		MAKE_FUNCTION_PROJECTION_TUPLE_BY_ALIAS(CTopLevelWindow::CloneVisualTreeForLivePreview_Win11, "CTopLevelWindow::CloneVisualTreeForLivePreview", os::build_w11_22h2, 0),
+		MAKE_FUNCTION_PROJECTION_TUPLE(CTopLevelWindow::ApplyMaximizedClip, 0, 0),
 		MAKE_FUNCTION_PROJECTION_TUPLE(CTopLevelWindow::GetActualWindowRect, 0, 0),
 		MAKE_FUNCTION_PROJECTION_TUPLE(CTopLevelWindow::TreatAsActiveWindow, 0, 0),
 		MAKE_FUNCTION_PROJECTION_TUPLE(CTopLevelWindow::OnBlurBehindUpdated, 0, 0),
